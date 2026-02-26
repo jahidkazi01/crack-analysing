@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Structural Crack Risk Analysis - Ultra Pro</title>
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(to right, #cfd9df, #e2ebf0);
+    text-align: center;
+}
+
+.container {
+    background: white;
+    padding: 25px;
+    margin: 40px auto;
+    width: 520px;
+    border-radius: 12px;
+    box-shadow: 0px 0px 15px gray;
+}
+
+input, select {
+    margin: 8px;
+    padding: 8px;
+    width: 40%;
+    border-radius: 5px;
+    border: 1px solid gray;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 8px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.result {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.low { background-color: #d4edda; color: #155724; }
+.medium { background-color: #fff3cd; color: #856404; }
+.high { background-color: #f8d7da; color: #721c24; }
+
+.small {
+    font-size: 12px;
+    color: #555;
+    margin-top: 10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>Smart Structural Crack Risk Analyzer</h2>
+
+<!-- Crack Width -->
+<input type="number" id="width" placeholder="Crack Width">
+<select id="widthUnit">
+  <option value="mm">mm</option>
+  <option value="cm">cm</option>
+  <option value="m">m</option>
+  <option value="inch">inch</option>
+  <option value="ft">ft</option>
+</select>
+<br>
+
+<!-- Crack Length -->
+<input type="number" id="length" placeholder="Crack Length">
+<select id="lengthUnit">
+  <option value="mm">mm</option>
+  <option value="cm">cm</option>
+  <option value="m">m</option>
+  <option value="inch">inch</option>
+  <option value="ft">ft</option>
+</select>
+<br>
+
+<!-- Crack Location -->
+<select id="location">
+  <option value="1">Wall</option>
+  <option value="2">Beam</option>
+  <option value="3">Column</option>
+  <option value="4">Slab</option>
+</select>
+<br>
+
+<!-- Building Age -->
+<input type="number" id="age" placeholder="Building Age (years)">
+<br>
+
+<!-- File Upload -->
+<input type="file" id="fileInput" accept=".pdf,.doc,.docx,image/*" multiple>
+<br>
+<small>Select file from Camera, Gallery, Drive, or Files</small>
+<br>
+
+<button onclick="analyze()">Analyze Risk</button>
+<button onclick="window.print()">Generate Report</button>
+
+<div id="output" class="result"></div>
+
+<div class="small">
+Based on general structural guidelines & IS 456:2000 durability concepts.
+</div>
+</div>
+
+<script>
+// Function to convert any unit to millimeters
+function toMM(value, unit) {
+    switch(unit) {
+        case "mm": return value;
+        case "cm": return value * 10;
+        case "m": return value * 1000;
+        case "inch": return value * 25.4;
+        case "ft": return value * 304.8;
+        default: return value;
+    }
+}
+
+function analyze() {
+    let width = parseFloat(document.getElementById("width").value);
+    let length = parseFloat(document.getElementById("length").value);
+    let widthUnit = document.getElementById("widthUnit").value;
+    let lengthUnit = document.getElementById("lengthUnit").value;
+    let location = parseInt(document.getElementById("location").value);
+    let age = parseFloat(document.getElementById("age").value);
+
+    // File input
+    let files = document.getElementById("fileInput").files;
+    let fileList = [];
+    for (let i = 0; i < files.length; i++) {
+        fileList.push(files[i].name);
+    }
+
+    // Input validation
+    if (isNaN(width) || isNaN(length) || isNaN(age)) {
+        document.getElementById("output").innerHTML = "Please fill all fields properly.";
+        return;
+    }
+
+    // Convert width and length to mm
+    let widthMM = toMM(width, widthUnit);
+    let lengthMM = toMM(length, lengthUnit);
+
+    let score = 0;
+    let crackType = "";
+
+    // Crack classification based on width
+    if (widthMM < 2) crackType = "Non-Structural Crack";
+    else crackType = "Structural Crack";
+
+    // Width scoring
+    if (widthMM < 2) score += 10;
+    else if (widthMM <= 5) score += 30;
+    else score += 50;
+
+    // Length scoring
+    if (lengthMM < 100) score += 5;
+    else if (lengthMM <= 300) score += 15;
+    else score += 25;
+
+    // Location scoring
+    score += location * 8;
+
+    // Age effect
+    if (age > 20) score += 15;
+    else if (age > 10) score += 10;
+    else score += 5;
+
+    // Determine risk level
+    let riskLevel = "";
+    let suggestion = "";
+    let className = "";
+
+    if (score < 40) {
+        riskLevel = "LOW RISK 🟢";
+        suggestion = "Minor surface repair recommended. Monitor annually.";
+        className = "low";
+    } else if (score < 70) {
+        riskLevel = "MEDIUM RISK 🟡";
+        suggestion = "Crack sealing / epoxy injection required. Structural monitoring advised.";
+        className = "medium";
+    } else {
+        riskLevel = "HIGH RISK 🔴";
+        suggestion = "Immediate structural audit required. Possible strengthening needed.";
+        className = "high";
+    }
+
+    // Show result
+    let outputDiv = document.getElementById("output");
+    outputDiv.className = "result " + className;
+    outputDiv.innerHTML =
+        "Crack Type: " + crackType + "<br>" +
+        "Crack Width: " + width.toFixed(2) + " " + widthUnit + " (" + widthMM.toFixed(1) + " mm)<br>" +
+        "Crack Length: " + length.toFixed(2) + " " + lengthUnit + " (" + lengthMM.toFixed(1) + " mm)<br>" +
+        "Risk Score: " + score + " / 100<br>" +
+        "Risk Level: " + riskLevel + "<br><br>" +
+        "Recommendation: " + suggestion + "<br><br>" +
+        (fileList.length > 0 ? "Uploaded Files:<br>" + fileList.join("<br>") : "No files uploaded.");
+}
+</script>
+
+</body>
+</html>
